@@ -1,232 +1,140 @@
 #include <stdio.h>
 #include <stdlib.h>
-typedef struct node {
+
+struct Node {
     int data;
-    struct node *next;
-} Node;
-Node* createNode(int data) {
-    Node* newNode = (Node*)malloc(sizeof(Node));
-    newNode->data = data;
-    newNode->next = NULL;
-    return newNode;
-}
-void insertAtBeginning(Node **head, int data) {
-    Node* newNode = createNode(data);
-    if (*head == NULL){
-        *head = newNode;
-        newNode->next = *head;
-    }
-    else{
-        Node* temp = *head;
-        while (temp->next != *head) temp = temp->next;
-        temp->next = newNode;
-        newNode->next = *head;
-        *head = newNode;
+    struct Node* next;
+};
+
+struct Node* head = NULL;
+
+void createCircularList(int arr[], int size) {
+    if (size == 0) return;
+    struct Node *newNode, *last;
+    head = (struct Node*)malloc(sizeof(struct Node));
+    head->data = arr[0];
+    head->next = head;
+    last = head;
+    for (int i = 1; i < size; i++) {
+        newNode = (struct Node*)malloc(sizeof(struct Node));
+        newNode->data = arr[i];
+        newNode->next = head;
+        last->next = newNode;
+        last = newNode;
     }
 }
-void insertAtEnd(Node **head, int data){
-    Node* newNode = createNode(data);
-    if (*head == NULL){
-        *head = newNode;
-        newNode->next = *head;
-    }
-    else{
-        Node* temp = *head;
-        while (temp->next != *head) temp = temp->next;
-        temp->next = newNode;
-        newNode->next = *head;
-    }
-}
-void insertAtIndex(Node **head, int data, int index) {
-    Node* newNode = createNode(data);
-    if (*head == NULL || index == 0) {
-        insertAtBeginning(head, data);
+
+void insertAtPosition(int value, int pos) {
+    struct Node* newNode = (struct Node*)malloc(sizeof(struct Node));
+    newNode->data = value;
+
+    if (head == NULL) {
+        newNode->next = newNode;
+        head = newNode;
         return;
     }
-    Node* temp = *head;
-    for (int i = 0; i < index - 1 && temp->next != *head; i++) {
-        temp = temp->next;
-    }
-    if (temp->next != *head) {
-        newNode->next = temp->next;
-        temp->next = newNode;
-    }
-}
-void deleteAtBeginning(Node **head) {
-    if (*head == NULL) return;
-    Node* temp = *head;
-    if (*head == temp->next){
-        free(temp);
-        *head = NULL;
-    }
-    else{
-        Node* last = *head;
-        while (last->next != *head) last = last->next;
-        *head = (*head)->next;
-        last->next = *head;
-        free(temp);
-    }
-}
-void deleteAtEnd(Node **head){
-    if (*head == NULL) return;
-    Node* temp = *head;
-    if (*head == temp->next) {
-        free(temp);
-        *head = NULL;
-    }
-    else{
-        while (temp->next->next != *head) {
+
+    struct Node* temp = head;
+
+    if (pos == 1) {
+        while (temp->next != head)
             temp = temp->next;
+        temp->next = newNode;
+        newNode->next = head;
+        head = newNode;
+    } else {
+        int count = 1;
+        struct Node* prev = NULL;
+        while (temp->next != head && count < pos) {
+            prev = temp;
+            temp = temp->next;
+            count++;
         }
-        Node* toDelete = temp->next;
-        temp->next = *head;
-        free(toDelete);
+        if (count == pos) {
+            prev->next = newNode;
+            newNode->next = temp;
+        } else {
+            printf("Invalid position.\n");
+        }
     }
 }
-void deleteAtIndex(Node **head, int index) {
-    if (*head == NULL) return;
-    Node* temp = *head;
-    if (index == 0) {
-        deleteAtBeginning(head);
-        return;
-    }
-    for (int i = 0; i < index - 1 && temp->next != *head; i++) {
-        temp = temp->next;
-    }
-    if (temp->next != *head) {
-        Node* toDelete = temp->next;
-        temp->next = temp->next->next;
-        free(toDelete);
-    }
-}
-void printList(Node* head) {
-    if (head == NULL){
+
+void deleteAtPosition(int pos) {
+    if (head == NULL) {
         printf("List is empty.\n");
         return;
     }
-    Node* temp = head;
+    struct Node *temp = head, *prev = NULL;
+
+    if (pos == 1) {
+        struct Node* last = head;
+        while (last->next != head)
+            last = last->next;
+        if (head->next == head) {
+            free(head);
+            head = NULL;
+        } else {
+            head = head->next;
+            last->next = head;
+            free(temp);
+        }
+    } else {
+        int count = 1;
+        while (temp->next != head && count < pos) {
+            prev = temp;
+            temp = temp->next;
+            count++;
+        }
+        if (count == pos) {
+            prev->next = temp->next;
+            free(temp);
+        } else {
+            printf("Invalid position.\n");
+        }
+    }
+}
+
+void display() {
+    if (head == NULL) {
+        printf("List is empty.\n");
+        return;
+    }
+    struct Node* temp = head;
+    printf("Circular Linked List: ");
     do {
         printf("%d -> ", temp->data);
         temp = temp->next;
     } while (temp != head);
-    printf("(head)\n");
+    printf("DONE\n");
 }
-typedef struct History {
-    Node* headState;
-    struct History* next;
-} History;
-History* undoStack = NULL;
-History* redoStack = NULL;
-void pushUndo(Node* head) {
-    History* newHistory = (History*)malloc(sizeof(History));
-    newHistory->headState = head;
-    newHistory->next = undoStack;
-    undoStack = newHistory;
-}
-Node* popUndo() {
-    if (undoStack == NULL) return NULL;
-    History* temp = undoStack;
-    undoStack = undoStack->next;
-    Node* headState = temp->headState;
-    free(temp);
-    return headState;
-}
-void pushRedo(Node* head) {
-    History* newHistory = (History*)malloc(sizeof(History));
-    newHistory->headState = head;
-    newHistory->next = redoStack;
-    redoStack = newHistory;
-}
-Node* popRedo() {
-    if (redoStack == NULL) return NULL;
-    History* temp = redoStack;
-    redoStack = redoStack->next;
-    Node* headState = temp->headState;
-    free(temp);
-    return headState;
-}
-void undo(Node** head) {
-    Node* prevState = popUndo();
-    if (prevState != NULL) {
-        pushRedo(*head);
-        *head = prevState;
-        printf("Undo performed.\n");
-    } else {
-        printf("No more undos available.\n");
-    }
-}
-void redo(Node** head) {
-    Node* nextState = popRedo();
-    if (nextState != NULL) {
-        pushUndo(*head);
-        *head = nextState;
-        printf("Redo performed.\n");
-    } else {
-        printf("No more redos available.\n");
-    }
-}
+
 int main() {
-    Node* head = NULL;
-    int choice, data, index;
-    while(1){
-        printf("\n1) Insert at user-specific index\n");
-        printf("2) Insert at the beginning\n");
-        printf("3) Insert at the last index\n");
-        printf("4) Delete from user-specific index\n");
-        printf("5) Delete from the beginning\n");
-        printf("6) Delete from the last index\n");
-        printf("7) Undo\n");
-        printf("8) Redo\n");
-        printf("9) Print list\n");
-        printf("10) Exit\n");
-        printf("Enter your choice: ");
-        scanf("%d", &choice);
-        switch (choice) {
-            case 1:
-                printf("Enter the index to insert: ");
-                scanf("%d", &index);
-                printf("Enter the data to insert: ");
-                scanf("%d", &data);
-                pushUndo(head); // Save current state for undo
-                insertAtIndex(&head, data, index);
-                break;
-            case 2:
-                printf("Enter the data to insert at the beginning: ");
-                scanf("%d", &data);
-                pushUndo(head);
-                insertAtBeginning(&head, data);
-                break;
-            case 3:
-                printf("Enter the data to insert at the end: ");
-                scanf("%d", &data);
-                pushUndo(head);
-                insertAtEnd(&head, data);
-                break;
-            case 4:
-                printf("Enter the index to delete: ");
-                scanf("%d", &index);
-                pushUndo(head);
-                deleteAtIndex(&head, index);
-                break;
-            case 5:
-                pushUndo(head);
-                deleteAtBeginning(&head);
-                break;
-            case 6:
-                pushUndo(head);
-                deleteAtEnd(&head);
-                break;
-            case 7:
-                undo(&head);
-                break;
-            case 8:
-                redo(&head);
-                break;
-            case 9:
-                printList(head);
-                break;
-            case 10:
-                exit(0);
-        }
+    int size;
+    scanf("%d", &size);
+    int a[size];
+    for (int i = 0; i < size; i++) {
+        scanf("%d", &a[i]);
     }
+    createCircularList(a, size);
+    display();
+
+    int  pos;
+    char i;
+    scanf("%d",&i);
+    switch (i) {
+        case 'i':
+        int value;
+            scanf("%d %d", &value, &pos);
+            insertAtPosition(value, pos);
+            break;
+        case 'd':
+            scanf("%d", &pos);
+            deleteAtPosition(pos);
+            break;
+        default:
+            printf("Invalid option.\n");
+            break;
+    }
+    display(); // To see the updated list after insertion or deletion
+    return 0;
 }
